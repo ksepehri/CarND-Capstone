@@ -110,7 +110,7 @@ class DBWNode(object):
                 throttle = accel
 
             # record data for debugging
-            self.data_recorder(self.target_velocity, self.target_yaw_dot, throttle, brake, steer)
+            # self.data_recorder(self.target_velocity, self.target_yaw_dot, throttle, brake, steer)
 
             # rospy.loginfo('DBW a:%.3f         y:%.3f', self.target_velocity, self.target_yaw_dot)
             # rospy.loginfo('DBW t:%.3f b:%.3f s:%.3f', throttle, brake, steer)
