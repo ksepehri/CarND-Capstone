@@ -49,6 +49,8 @@ class TLDetector(object):
         self.last_wp = -1
         self.state_count = 0
 
+        self.image_index = 0
+
         rospy.spin()
 
     def pose_cb(self, msg):
@@ -70,6 +72,7 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
+        self.save_image()
         light_wp, state = self.process_traffic_lights()
 
         '''
@@ -89,6 +92,12 @@ class TLDetector(object):
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
+
+    def save_image(self):
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        cv2.imwrite('/tmp/img%04d.png'%(self.image_index),cv_image)
+        self.image_index += 1
+
 
     def get_closest_waypoint(self, pose):
         """Identifies the closest path waypoint to the given position
