@@ -54,6 +54,9 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints.waypoints
+        for waypoint_index in range(800,len(self.base_waypoints)):
+            # pass
+            self.base_waypoints[waypoint_index].twist.twist.linear.x=0
         print("waypoints set!")
 
     def traffic_cb(self, msg):
@@ -98,6 +101,7 @@ class WaypointUpdater(object):
         closing_waypoint_index = nearest_waypoint_index + LOOKAHEAD_WPS
 
         waypoints_to_publish = self.base_waypoints[nearest_waypoint_index:closing_waypoint_index]
+        # rospy.logwarn('nearest index: %d',nearest_waypoint_index)
         #print("publishing {} waypoints".format(len(waypoints_to_publish)))
 
         self.final_waypoints_pub.publish(Lane(waypoints=waypoints_to_publish))
