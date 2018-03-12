@@ -85,7 +85,6 @@ class DBWNode(object):
 
             current_time = rospy.Time.now()
             dt = current_time.to_sec() - self.last_update_time.to_sec()
-            #rospy.loginfo('dbw dt: %.3f', dt)
             self.last_update_time = current_time
 
             if (dt>0.075):
@@ -110,6 +109,7 @@ class DBWNode(object):
             else:
                 throttle = accel
 
+            # record data for debugging
             self.data_recorder(self.target_velocity, self.target_yaw_dot, throttle, brake, steer)
 
             # rospy.loginfo('DBW a:%.3f         y:%.3f', self.target_velocity, self.target_yaw_dot)
@@ -126,9 +126,6 @@ class DBWNode(object):
 
     def current_velocity_callback(self, msg):
         self.current_velocity = msg.twist.linear.x
-        # TODO: remove this check if y velocity always 0
-        if (abs(msg.twist.linear.y)>0.001):
-            rospy.logerr('current_velocity y!=0   y:%.3f',msg.twist.linear.y)
         self.current_yaw_dot = msg.twist.angular.z
         # rospy.loginfo('current_velocity: v:%.3f yd:%.3f', self.current_velocity, self.current_yaw_dot)
         # log_twist_msg(msg, 'current_velocity:')
@@ -155,12 +152,14 @@ class DBWNode(object):
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
 
+
     def data_recorder(self, target_velocity, target_yaw_dot, throttle, brake, steer):
+        dbw_data_filename='/tmp/dbw_data.csv'
         try:
             foo = self.dbw_data
         except:
             self.dbw_data = []
-            with open('/tmp/dbw_data.csv', 'wb') as csvfile:
+            with open(dbw_data_filename, 'wb') as csvfile:
                 rospy.loginfo('DBW data file: %s', csvfile.name)
                 csv_writer = csv.writer(csvfile, delimiter=',')
                 csv_writer.writerow(['time','t_speed', 't_yd', 'throttle', 'brake', 'steer', 'c_speed', 'c_yd'])
@@ -168,14 +167,12 @@ class DBWNode(object):
         time = rospy.Time.now().to_sec()
         self.dbw_data.append([time, target_velocity, target_yaw_dot, throttle, brake, steer, self.current_velocity, self.current_yaw_dot])
         if len(self.dbw_data)==1000:
-            with open('/tmp/dbw_data.csv', 'ab') as csvfile:
+            with open(dbw_data_filename, 'ab') as csvfile:
                 csv_writer = csv.writer(csvfile, delimiter=',')
                 for row in self.dbw_data:
                     csv_writer.writerow(row)
             rospy.loginfo('DBW data saved')
             self.dbw_data = []
-
-
 
 
 def log_twist_msg(msg, description=None):

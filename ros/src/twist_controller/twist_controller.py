@@ -63,3 +63,5 @@ class TwistController(object):
 
     def reset(self):
         self.accel_pid.reset()
+        self.last_accel = 0
+        self.last_steer = 0
