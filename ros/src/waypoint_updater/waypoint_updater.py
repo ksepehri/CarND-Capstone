@@ -54,9 +54,12 @@ class WaypointUpdater(object):
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints.waypoints
-        for waypoint_index in range(800,len(self.base_waypoints)):
-            pass
-            #self.base_waypoints[waypoint_index].twist.twist.linear.x=0
+
+        # simulate stop (for brake debugging)
+        #
+        # for waypoint_index in range(800,len(self.base_waypoints)):
+        #     self.base_waypoints[waypoint_index].twist.twist.linear.x=0
+
         print("waypoints set!")
 
     def traffic_cb(self, msg):
