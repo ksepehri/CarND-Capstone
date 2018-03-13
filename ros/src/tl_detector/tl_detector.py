@@ -33,7 +33,9 @@ class TLDetector(object):
         rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
+
+        # /image_color subscriber
+        self.sub_image = None
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -51,7 +53,14 @@ class TLDetector(object):
 
         self.image_index = 0
 
-        rospy.spin()
+        self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(2)  # Hz
+        while not rospy.is_shutdown():
+            if self.sub_image is None:
+                self.sub_image = rospy.Subscriber('/image_color', Image, self.image_cb)
+            rate.sleep()
 
     def pose_cb(self, msg):
         self.pose = msg
@@ -72,7 +81,12 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
+
+        self.sub_image.unregister()
+        self.sub_image = None
+
         self.save_image()
+
         light_wp, state = self.process_traffic_lights()
 
         '''
@@ -94,6 +108,12 @@ class TLDetector(object):
         self.state_count += 1
 
     def save_image(self):
+        if hasattr(self.camera_image, 'encoding'):
+            self.attribute = self.camera_image.encoding
+            if self.camera_image.encoding == '8UC3':
+                self.camera_image.encoding = "rgb8"
+        else:
+            self.camera_image.encoding = 'rgb8'
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
         cv2.imwrite('/tmp/img%04d.png'%(self.image_index),cv_image)
         self.image_index += 1
