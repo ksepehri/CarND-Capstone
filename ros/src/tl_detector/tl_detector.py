@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+from math import sqrt
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -66,7 +67,7 @@ class TLDetector(object):
         self.pose = msg
 
     def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
+        self.waypoints = waypoints.waypoints
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -84,8 +85,6 @@ class TLDetector(object):
 
         self.sub_image.unregister()
         self.sub_image = None
-
-        self.save_image()
 
         light_wp, state = self.process_traffic_lights()
 
@@ -107,7 +106,7 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def save_image(self):
+    def save_image(self, state):
         if hasattr(self.camera_image, 'encoding'):
             self.attribute = self.camera_image.encoding
             if self.camera_image.encoding == '8UC3':
@@ -115,11 +114,15 @@ class TLDetector(object):
         else:
             self.camera_image.encoding = 'rgb8'
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        cv2.imwrite('/tmp/img%04d.png'%(self.image_index),cv_image)
+        cv2.imwrite('/tmp/img%04d_%d.png'%(self.image_index, state),cv_image)
         self.image_index += 1
 
+    def pose_distance(self, p1, p2):
+        dx = p1.position.x - p2.position.x
+        dy = p1.position.y - p2.position.y
+        return sqrt(dx**2+dy**2)
 
-    def get_closest_waypoint(self, pose):
+    def get_closest_waypoint(self, pose, waypoints):
         """Identifies the closest path waypoint to the given position
             https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
         Args:
@@ -129,8 +132,16 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
-        return 0
+        closest_dist = float("inf")
+        closest_index = None
+
+        for i, waypoint in enumerate(waypoints):
+            d = self.pose_distance(pose, waypoint.pose.pose)
+            if (d<closest_dist):
+                closest_dist = d
+                closest_index = i
+
+        return closest_index
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
@@ -164,15 +175,23 @@ class TLDetector(object):
 
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+        if self.pose and self.waypoints is not None:
+            car_position = self.get_closest_waypoint(self.pose.pose, self.waypoints)
 
         #TODO find the closest visible traffic light (if one exists)
+        closest_light_index = self.get_closest_waypoint(self.pose.pose, self.lights)
+
+        if closest_light_index is not None:
+            closest_light = self.lights[closest_light_index]
+            closest_light_state = closest_light.state
+            self.save_image(closest_light_state)
 
         if light:
             state = self.get_light_state(light)
             return light_wp, state
-        self.waypoints = None
+
+        # TODO: why are waypoints destroyed here?
+        #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
