@@ -1,0 +1,15 @@
+#
+# call with ${CHECKPOINT_NUMBER}, eg. 22441
+#
+
+echo exporting checkpoint: ${1} to: output_inference_graph.pb
+
+#mobilenet
+#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_mobilenet_v1_coco.config --trained_checkpoint_prefix models/train/model.ckpt-${1} --output_directory output_inference_graph.pb
+
+# inference red,green
+#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco.config --trained_checkpoint_prefix models/train/model.ckpt-${1} --output_directory output_inference_graph.pb
+
+# inference red only
+python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco_red_only.config --trained_checkpoint_prefix models/train/model.ckpt-${1} --output_directory output_inference_graph.pb
+

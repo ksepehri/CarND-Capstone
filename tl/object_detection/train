@@ -1,0 +1,10 @@
+# mobilenet
+#python train.py --logtostderr --train_dir=models/train --pipeline_config_path=ssd_mobilenet_v1_coco.config 
+
+# inception red,green
+#python train.py --logtostderr --train_dir=models/train --pipeline_config_path=ssd_inception_v2_coco.config
+
+#inceptrion red only
+python train.py --logtostderr --train_dir=models/train --pipeline_config_path=ssd_inception_v2_coco_red_only.config
+
+

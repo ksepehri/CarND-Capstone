@@ -1,0 +1,8 @@
+rm data/*
+rm models/train/*
+rm models/eval/*
+
+cp ~/Downloads/convert_to_tfrecords/train.record data/
+cp ~/Downloads/convert_to_tfrecords/eval.record data/
+cp ~/Downloads/convert_to_tfrecords/label_map.pbtxt data/
+

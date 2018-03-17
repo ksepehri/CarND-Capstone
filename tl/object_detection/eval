@@ -1,0 +1,8 @@
+# mobilenet
+#python eval.py --logtostderr --pipeline_config_path=ssd_mobilenet_v1_coco.config --checkpoint_dir=models/train --eval_dir=models/eval
+
+# inference red, green
+#python eval.py --logtostderr --pipeline_config_path=ssd_inception_v2_coco.config --checkpoint_dir=models/train --eval_dir=models/eval
+
+# inference red only
+python eval.py --logtostderr --pipeline_config_path=ssd_inception_v2_coco_red_only.config --checkpoint_dir=models/train --eval_dir=models/eval
