@@ -8,4 +8,8 @@ profile.tmp
 .ipynb_checkpoints
 
 tl/object_detection/stuff/
+tl/object_detection/data/
+tl/object_detection/models/
+tl/object_detection/test_images/
+tl/object_detection/test_output/
 
