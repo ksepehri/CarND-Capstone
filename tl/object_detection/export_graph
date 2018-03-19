@@ -1,15 +1,32 @@
-#
-# call with ${CHECKPOINT_NUMBER}, eg. 22441
-#
 
-echo exporting checkpoint: ${1} to: output_inference_graph.pb
+echo ---- available checkpoints ----
+ls models/train/*.index | awk -F. '{ print $(NF-1) }' | awk -F- '{ print $NF }' | sort -n
+echo -------------------------------
+
+if [ -z "$1" ]; then
+    CHECKPOINT_ID=`ls models/train/*.index | awk -F. '{ print $(NF-1) }' | awk -F- '{ print $NF }' | sort -n | tail -1`
+else
+    CHECKPOINT_ID=$1
+fi
+
+OUTPUT_DIR='output_inference_graph.pb'
+
+echo exporting checkpoint: ${CHECKPOINT_ID}
+echo output dir: output_inference_graph.pb
+echo -------------------------------
+
+if [ -d $OUTPUT_DIR ]; then
+    rm -rf $OUTPUT_DIR
+fi
 
 #mobilenet
-#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_mobilenet_v1_coco.config --trained_checkpoint_prefix models/train/model.ckpt-${1} --output_directory output_inference_graph.pb
+#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_mobilenet_v1_coco.config --trained_checkpoint_prefix models/train/model.ckpt-${CHECKPOINT_ID} --output_directory output_inference_graph.pb
 
 # inference red,green
-#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco.config --trained_checkpoint_prefix models/train/model.ckpt-${1} --output_directory output_inference_graph.pb
+#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco.config --trained_checkpoint_prefix models/train/model.ckpt-${CHECKPOINT_ID} --output_directory output_inference_graph.pb
 
 # inference red only
-python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco_red_only.config --trained_checkpoint_prefix models/train/model.ckpt-${1} --output_directory output_inference_graph.pb
+#python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco_red_only.config --trained_checkpoint_prefix models/train/model.ckpt-${CHECKPOINT_ID} --output_directory output_inference_graph.pb
 
+# inference red, green, yellow
+python export_graph.py --input_type image_tensor --pipeline_config_path ssd_inception_v2_coco_rgy.config --trained_checkpoint_prefix models/train/model.ckpt-${CHECKPOINT_ID} --output_directory output_inference_graph.pb

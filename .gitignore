@@ -11,5 +11,6 @@ tl/object_detection/stuff/
 tl/object_detection/data/
 tl/object_detection/models/
 tl/object_detection/test_images/
-tl/object_detection/test_output/
+tl/object_detection/test_output*/
+tl/object_detection/output_inference_graph*/
 
