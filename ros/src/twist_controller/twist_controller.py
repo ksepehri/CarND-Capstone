@@ -58,7 +58,7 @@ class TwistController(object):
             accel *= self.brake_torque
             self.last_accel = 0
             steer = 0
-
+        
         self.last_steer = steer
 
         return accel, steer
