@@ -55,6 +55,7 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         self.dbw_enabled = False
+        self.tl_detector_ready = False
         self.target_velocity = 0.
         self.target_yaw_dot = 0.
         self.current_velocity = 0.
@@ -70,6 +71,7 @@ class DBWNode(object):
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_callback)
         rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_callback)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_callback)
+        rospy.Subscriber('/tl_detector_ready', Bool, self.tl_detector_ready_callback)
 
 
         self.loop()
@@ -78,8 +80,10 @@ class DBWNode(object):
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
 
-            if self.last_update_time is None:
+            # hold brake if tl_detector not ready
+            if not self.tl_detector_ready or self.last_update_time is None:
                 self.last_update_time = rospy.Time.now()
+                self.publish(0, BrakeCmd.TORQUE_MAX, 0)
                 rate.sleep()
                 continue
 
@@ -133,6 +137,10 @@ class DBWNode(object):
     def dbw_enabled_callback(self, msg):
         self.dbw_enabled = msg.data
         # rospy.loginfo('dbw_enabled: %d', self.dbw_enabled)
+
+    def tl_detector_ready_callback(self, msg):
+        self.tl_detector_ready = msg.data
+        # rospy.loginfo('tl_detector_ready: %s', self.tl_detector_ready)
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
