@@ -8,6 +8,9 @@ import os.path
 import scipy.misc as scipy_misc
 import tensorflow as tf
 
+# ignore FutureWarn from scipy
+import warnings
+warnings.filterwarnings("ignore")
 
 class DeepClassifier(object):
     def __init__(self):

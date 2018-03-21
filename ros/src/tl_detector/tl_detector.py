@@ -16,10 +16,13 @@ from math import sqrt
 
 class TLDetector(object):
     def __init__(self):
-        # self.pub_ready = rospy.Publisher('tl_detector_ready', Bool)
         rospy.init_node('tl_detector')
         rospy.logdebug('Init TL DETECTOR')
-        # self.pub_ready.publish(False)
+
+        # /tl_detector_ready to notify other nodes that the keras model is loaded
+        self.pub_ready = rospy.Publisher('tl_detector_ready', Bool)
+        self.pub_ready.publish(False)
+
         self.pose = None
         self.waypoints = None
         self.camera_image = None
@@ -47,7 +50,7 @@ class TLDetector(object):
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
-        rospy.logwarn('------ classifier loaded -------')
+        # rospy.logwarn('------ classifier loaded -------')
         self.listener = tf.TransformListener()
 
         self.state = TrafficLight.UNKNOWN
@@ -58,6 +61,8 @@ class TLDetector(object):
         self.has_image = False
 
         self. rate = rospy.Rate(2)  # Hz
+
+        self.pub_ready.publish(True)
 
         self.loop()
 
@@ -182,7 +187,7 @@ class TLDetector(object):
         if closest_light_index is None:
             return None, False, TrafficLight.UNKNOWN
 
-        rospy.loginfo('closest_light_index: %d', closest_light_index) #
+        # rospy.loginfo('closest_light_index: %d', closest_light_index) #
         #rospy.loginfo(self.lights)
 
 
@@ -200,10 +205,10 @@ class TLDetector(object):
             waypoints_to_next_light_waypoint = light_wp - car_position
             if light_wp > (len(self.waypoints) - light_prediction_waypoints) <= light_prediction_waypoints:
                 waypoints_to_next_light_waypoint += len(self.waypoints)
-            rospy.loginfo('waypoint distance is %s', waypoints_to_next_light_waypoint)
+            # rospy.loginfo('waypoint distance is %s', waypoints_to_next_light_waypoint)
             if waypoints_to_next_light_waypoint >= 25 and waypoints_to_next_light_waypoint <= light_prediction_waypoints:
                 should_evaluate = True
-                rospy.logwarn('should evaluate light')
+                # rospy.logwarn('should evaluate light')
 
         return light, should_evaluate, state
 
@@ -224,18 +229,16 @@ class TLDetector(object):
         if should_evaluate:
             state = self.get_light_state(light)
             if state != TrafficLight.UNKNOWN:
-                rospy.loginfo('predicted state: %d, actual state: %d', state, light.state)
+                # rospy.loginfo('predicted state: %d, actual state: %d', state, light.state)
                 # rospy.loginfo('car_wp: %d', car_position)
+                pass
 
             light_wp = self.get_closest_waypoint(light.pose.pose, self.waypoints)
 
             light_pose = Pose()
             light_pose.position.x = light
-            #self.pub_ready.publish(True)
             return light_wp, state
 
-        # TODO: why are waypoints destroyed here?
-        #self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':
