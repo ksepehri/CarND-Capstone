@@ -59,19 +59,24 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         waypoint = msg.data
-        rospy.logwarn('waypoint msg data: %d',waypoint)
+        #rospy.logwarn('waypoint msg data: %d',waypoint)
         if waypoint != -1:
+            waypoint -= 20 # for some reason, the stop line data appears to be 20 waypoints off?
             self.set_waypoint_velocity(self.base_waypoints, waypoint, 0)
             #self.base_waypoints[waypoint].twist.twist.linear.x = 0 # come to stop by here
             # rospy.logwarn('traffic_cb dest_waypoint: %d, current_waypoint: %d', waypoint, self.nearest_waypoint()) #
-            for i in range(self.nearest_waypoint(), waypoint-10):
+            nearest_waypoint = self.nearest_waypoint()
+            waypoints_to_stop = waypoint - nearest_waypoint
+            #rospy.logwarn('nearest_waypoint: %d; waypoints_to_stop; %d; waypoint: %d', nearest_waypoint, waypoints_to_stop, waypoint)
+            for i in range(waypoints_to_stop):
                 # rospy.logwarn('updating velocity for waypoint %d', i)
-                p = 1. - (i*1.)/(waypoint-10)
-                # rospy.logwarn('p: %.3f', p)
+                p = 1. - float(i + 1) / float(waypoints_to_stop)
+                #rospy.logwarn('p: %.3f', p)
                 cur_v = self.get_waypoint_velocity(self.base_waypoints[i])
                 new_v = cur_v * p
                 # rospy.logwarn('   cur_v: %.3f, new_v: %.3f', cur_v, new_v)
-                self.set_waypoint_velocity(self.base_waypoints, i, new_v)
+                self.set_waypoint_velocity(self.base_waypoints, nearest_waypoint + i, new_v)
+
             # rospy.logwarn('sent stop')
         else:
             for i in range(self.nearest_waypoint(), self.nearest_waypoint()+100):

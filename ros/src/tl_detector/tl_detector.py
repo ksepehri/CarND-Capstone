@@ -176,8 +176,6 @@ class TLDetector(object):
         should_evaluate = False
         state = TrafficLight.UNKNOWN
 
-        # List of positions that correspond to the line to stop in front of for a given intersection
-        stop_line_positions = self.config['stop_line_positions']
         if self.pose is None or self.waypoints is None:
             return None, False, TrafficLight.UNKNOWN
 
@@ -191,14 +189,16 @@ class TLDetector(object):
         #rospy.loginfo(self.lights)
 
 
-        if closest_light_index is not None:
-            closest_light = self.lights[closest_light_index]
-            #rospy.loginfo(closest_light)
-            closest_light_state = closest_light.state
-            #self.save_image(closest_light_state)
-            light = closest_light
+        #if closest_light_index is not None:
+        #    closest_light = self.lights[closest_light_index]
+        #    
+        #    #rospy.loginfo(closest_light)
+        #    #closest_light_state = closest_light.state
+        #    #self.save_image(closest_light_state)
+        #    light = closest_light
 
-        if light:
+        if closest_light_index is not None:
+            light = self.lights[closest_light_index]
             light_wp = self.get_closest_waypoint(light.pose.pose, self.waypoints)
 
             light_prediction_waypoints = 120
@@ -210,7 +210,7 @@ class TLDetector(object):
                 should_evaluate = True
                 # rospy.logwarn('should evaluate light')
 
-        return light, should_evaluate, state
+        return closest_light_index, should_evaluate, state
 
 
 
@@ -224,7 +224,8 @@ class TLDetector(object):
 
         """
 
-        light, should_evaluate, debug_state = self.get_closest_light()
+        closest_light_index, should_evaluate, debug_state = self.get_closest_light()
+        light = self.lights[closest_light_index]
 
         if should_evaluate:
             state = self.get_light_state(light)
@@ -233,10 +234,16 @@ class TLDetector(object):
                 # rospy.loginfo('car_wp: %d', car_position)
                 pass
 
-            light_wp = self.get_closest_waypoint(light.pose.pose, self.waypoints)
+            # List of positions that correspond to the line to stop in front of for a given intersection
+            stop_line_positions = self.config['stop_line_positions']
+            stop_line = stop_line_positions[closest_light_index]
+            stop_line_pose = Pose()
+            stop_line_pose.position.x = stop_line[0]
+            stop_line_pose.position.y = stop_line[1]
+            light_wp = self.get_closest_waypoint(stop_line_pose, self.waypoints)
 
-            light_pose = Pose()
-            light_pose.position.x = light
+            #light_wp = self.get_closest_waypoint(light.pose.pose, self.waypoints)
+
             return light_wp, state
 
         return -1, TrafficLight.UNKNOWN
