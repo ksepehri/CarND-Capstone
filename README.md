@@ -9,7 +9,27 @@ Lajos Kamocsay|panka.nospam@gmail.com
 Mike Challis|gardenermike@gmail.com
 Rafael Barreto|rafaelbarretorb@gmail.com
 
+# ROS Nodes
+## Waypoint Updater
+The purpose of this node is to publish a fixed number of waypoints (40) ahead of the vehicle with the correct target velocities, depending on traffic lights and obstacles. 
 
+`/ros/src/waypoint_updater/waypoint_updater.py`
+
+It subscribes to the following topics:
+
+`/base_waypoints`: One time load of waypoints from the whole track.
+
+`/current_pose`: The current position of the car
+
+`/current_velocity`: The current velocity of the car
+
+It publishes the following topic:
+
+`/final_waypoints`: Total number of waypoints are based on LOOKAHEAD_WPS variable. If the car is approaching a red light it reduces these velocities to come to a stop by the stop line.
+## Drive By Wire (DBW)
+## Traffic Light Detection
+## Performance Tuning
+Reducing waypoints from 100 to 40
 
 # Install
 
