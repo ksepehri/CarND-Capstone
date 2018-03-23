@@ -17,11 +17,15 @@ The purpose of this node is to publish a fixed number of waypoints (40) ahead of
 
 ### Subscribes to
 
+`/current_pose`: The current position of the car.
+
 `/base_waypoints`: One time load of waypoints from the whole track.
 
-`/current_pose`: The current position of the car
+`/current_velocity`: The current velocity of the car.
 
-`/current_velocity`: The current velocity of the car
+`/traffic_waypoint`: Waypoint index of the closest red traffic light.
+
+Not subscribing to obstacle waypoint as it's not yet part of the project
 
 ### Publishes
 
