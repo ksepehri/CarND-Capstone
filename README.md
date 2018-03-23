@@ -13,9 +13,9 @@ Rafael Barreto|rafaelbarretorb@gmail.com
 ## Waypoint Updater
 The purpose of this node is to publish a fixed number of waypoints (40) ahead of the vehicle with the correct target velocities, depending on traffic lights and obstacles. 
 
-`/ros/src/waypoint_updater/waypoint_updater.py`
+[/ros/src/waypoint_updater/waypoint_updater.py](/ros/src/waypoint_updater/waypoint_updater.py)
 
-It subscribes to the following topics:
+### Subscribes to
 
 `/base_waypoints`: One time load of waypoints from the whole track.
 
@@ -23,10 +23,32 @@ It subscribes to the following topics:
 
 `/current_velocity`: The current velocity of the car
 
-It publishes the following topic:
+### Publishes
 
 `/final_waypoints`: Total number of waypoints are based on LOOKAHEAD_WPS variable. If the car is approaching a red light it reduces these velocities to come to a stop by the stop line.
 ## Drive By Wire (DBW)
+This node subscribes to various topics and controllers to provide appropriate throttle, brake, and steering commands. 
+
+[ros/src/twist_controller/dbw_node.py](ros/src/twist_controller/dbw_node.py)
+
+### Subscribes to
+
+`/twist_cmd`: Twist commands that describe linear and angular velocities
+
+`/current_velocity`: The current velocity of the car
+
+`/vehicle/dbw_enabled`: Switching between manual and DBW control
+
+`/tl_detector_ready`: Boolean that returns true once the traffic light detector is ready. If the detector is not ready the car brakes and sleeps.
+
+### Publishes
+
+`/vehicle/throttle_cmd`: Throttle commands.
+
+`/vehicle/brake_cmd`: Brake commands.
+
+`/vehicle/steering_cmd`: Steering commands.
+
 ## Traffic Light Detection
 ## Performance Tuning
 Reducing waypoints from 100 to 40
