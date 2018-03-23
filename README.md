@@ -54,8 +54,70 @@ This node subscribes to various topics and controllers to provide appropriate th
 `/vehicle/steering_cmd`: Steering commands.
 
 ## Traffic Light Detection
+This node uses Keras MobileNet to detect traffic lights and publishes the upcoming light waypoint along with a boolean for knowing if the model is ready. 
+
+[ros/src/tl_detector/tl_detector.py](ros/src/tl_detector/tl_detector.py)
+
+### Subscribes to
+
+`/current_pose`: The current position of the car.
+
+`/base_waypoints`: One time load of waypoints from the whole track.
+
+`/vehicle/traffic_lights`: Location of the traffic light in 3D map space.
+
+`/image_color`: Color image provided by camera.
+
+### Publishes
+
+`/tl_detector_ready`: Boolean to notify other nodes that the keras model is loaded.
+
+`/traffic_waypoint`: Waypoint index of the closest red traffic light.
+
+### Training
+The model was trained with a subset of the Bosch data and simulator images. The data is then augmented and evaluated. The model gets 95.7% accuracy on the combined simulator and bosch data, with 99.7% accuracy on the simulator training data.
+
+[traffic-light-detection/train.py](traffic-light-detection/train.py)
+
+```python
+image_size = (224, 224, 3)
+batch_size = 16
+num_classes = 4
+epochs = 96
+
+
+base_model = MobileNet(
+  alpha=0.25,          # adjust down to make model smaller/faster by reducing filter count
+  depth_multiplier=1,  # adjust down to make model smaller/faster by reducing resolution per layer
+  weights='imagenet',
+  #weights=None,
+  include_top=False,
+  #classes=num_classes,
+  input_shape=image_size
+)
+```
+
+It also augments the data randomly
+
+```python
+# augment data
+# rotate up to 2 degrees
+image = preprocess.random_rotation(image, 2, row_axis=0, col_axis=1, channel_axis=2)
+# randomly shift up to 20%
+image = preprocess.random_shift(image, 0.2, 0.2, row_axis=0, col_axis=1, channel_axis=2)
+# randomly zoom in up to 20%
+image = preprocess.random_zoom(image, (0.8, 0.8), row_axis=0, col_axis=1, channel_axis=2)
+#adjust brightness
+image = preprocess.random_brightness(image, (0.8, 1.2))
+# randomly flip horizontally
+if np.random.random() > 0.5:
+   image = preprocess.flip_axis(image, 1)
+```
+
 ## Performance Tuning
-Reducing waypoints from 100 to 40
+We ran into performance issues between the simulator and ROS so we tried the following optimizations:
+* Reducing lookahead waypoints from 100 to 40
+* Only send images to the model if the car is 100 to 25 waypoints from the light
 
 # Install
 
