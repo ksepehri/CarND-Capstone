@@ -1,4 +1,14 @@
+[//]: # (Image References)
+
+[car_stopped]: ./imgs/car_stopped_at_light.png "Car Stopped At Light"
+[camera_bag]: ./imgs/camera_bag.png "Camera Bag"
+[bosch_training]: ./imgs/bosch_training_image.png "Bosch Training"
+[bgr_camera]: ./imgs/bgr_camera_image.png "BGR Image"
+
 This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
+
+
+![alt text][car_stopped]
 
 # Team
 
@@ -33,7 +43,7 @@ Not subscribing to obstacle waypoint as it's not yet part of the project
 ## Drive By Wire (DBW)
 This node subscribes to various topics and controllers to provide appropriate throttle, brake, and steering commands. 
 
-[ros/src/twist_controller/dbw_node.py](ros/src/twist_controller/dbw_node.py)
+[/ros/src/twist_controller/dbw_node.py](/ros/src/twist_controller/dbw_node.py)
 
 ### Subscribes to
 
@@ -56,7 +66,7 @@ This node subscribes to various topics and controllers to provide appropriate th
 ## Traffic Light Detection
 This node uses Keras MobileNet to detect traffic lights and publishes the upcoming light waypoint along with a boolean for knowing if the model is ready. 
 
-[ros/src/tl_detector/tl_detector.py](ros/src/tl_detector/tl_detector.py)
+[/ros/src/tl_detector/tl_detector.py](/ros/src/tl_detector/tl_detector.py)
 
 ### Subscribes to
 
@@ -77,7 +87,15 @@ This node uses Keras MobileNet to detect traffic lights and publishes the upcomi
 ### Training
 The model was trained with a subset of the Bosch data and simulator images. The data is then augmented and evaluated. The model gets 95.7% accuracy on the combined simulator and bosch data, with 99.7% accuracy on the simulator training data.
 
-[traffic-light-detection/train.py](traffic-light-detection/train.py)
+![alt text][bosch_training]
+
+Sample Bosch Training Image
+
+![alt text][camera_bag]
+
+Sample Camera Bag Image
+
+[/traffic-light-detection/train.py](/traffic-light-detection/train.py)
 
 ```python
 image_size = (224, 224, 3)
