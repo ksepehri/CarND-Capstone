@@ -9,7 +9,7 @@ import time
 
 path_labels = {}
 
-with open('colors_only_labels.csv', 'r') as csvfile:
+with open('simulator_and_bosch_large_only.csv', 'r') as csvfile:
   reader = csv.reader(csvfile)
   for row in reader:
     path_labels[row[0]] = row[1]
@@ -46,9 +46,9 @@ matches = []
 test_count = 1000
 images = []
 categories = []
-#image_paths = ['rosbag_images/frame0001.jpg', 'rosbag_images/frame0050.jpg', 'rosbag_images/frame0700.jpg', 'rosbag_images/frame0900.jpg']
-#categories = [1, 1, 0, 0]
-for path in np.random.choice(image_paths, test_count):
+#image_paths = ['rosbag_images/frame0001.png', 'rosbag_images/frame0008.png', 'rosbag_images/frame0020.png', 'rosbag_images/frame0065.png']
+#categories = [0, 0, 2, 2]
+for path in image_paths: # np.random.choice(image_paths, test_count):
   image = load_image(path)
   category = get_category(path)
   images.append(image)
@@ -58,11 +58,12 @@ start = time.time()
 for i in range(len(images)):
   prediction = np.argmax(model.predict(np.array([images[i]]))[0])
   category = categories[i]
-  #print(path, category, prediction)
+  if prediction != category:
+    print(image_paths[i], category, prediction)
   matches.append(prediction == category)
 end = time.time()
 
 print("seconds elapsed: ", end - start)
 
 number_true = matches.count(True)
-print("Accuracy: ", float(number_true) / test_count)
+print("Accuracy: ", float(number_true) / len(images))

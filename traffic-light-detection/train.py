@@ -9,22 +9,29 @@ import random
 import numpy as np
 import h5py
 import scipy
+from PIL import ImageEnhance
 #print np.__version__ 
 #print np.__path__
 
 path_labels = {}
-
-with open('colors_only_labels.csv', 'r') as csvfile:
-  reader = csv.reader(csvfile)
-  for row in reader:
-    if row[1] != 'None':
-      path_labels[row[0]] = row[1]
+image_arrays = {}
 
 image_size = (224, 224, 3)
 #image_size = (200, 150, 3)
 batch_size = 16
-num_classes = 4
-epochs = 96
+num_classes = 3
+epochs = 128
+
+def load_image(image_path):
+  return scipy.misc.imresize(scipy.misc.imread(image_path), image_size)
+
+with open('simulator_and_bosch_large_only.csv', 'r') as csvfile:
+  reader = csv.reader(csvfile)
+  for row in reader:
+    if row[1] != 'None':
+      path_labels[row[0]] = row[1]
+      image_arrays[row[0]] = load_image(row[0])
+
 
 
 base_model = MobileNet(
@@ -41,7 +48,7 @@ x = base_model.output
 x = Flatten()(x)
 
 # intermediate layers
-x = Dense(64, activation='relu')(x)
+x = Dense(128, activation='relu')(x)
 x = Dropout(0.1)(x)
 x = Dense(32, activation='relu')(x)
 x = Dropout(0.1)(x)
@@ -66,8 +73,8 @@ model.compile(optimizer='adam', loss='categorical_crossentropy')
 image_paths = list(path_labels.keys())
 label_categories = {'Red': 0, 'Yellow': 1, 'Green': 2}
 
-def load_image(image_path):
-  return scipy.misc.imresize(scipy.misc.imread(image_path), image_size)
+#def load_image(image_path):
+#  return scipy.misc.imresize(scipy.misc.imread(image_path), image_size)
 
 def get_one_hot(image_path):
   color = path_labels[image_path]
@@ -85,17 +92,23 @@ def get_image_batches(batch_size):
       x = []
       y = []
       for image_path in image_paths[batch_i:batch_i+batch_size]:
-        image = load_image(image_path)
+        image = image_arrays[image_path] #load_image(image_path)
 
         # augment data
         # rotate up to 2 degrees
         image = preprocess.random_rotation(image, 2, row_axis=0, col_axis=1, channel_axis=2)
-        # randomly shift up to 20%
-        image = preprocess.random_shift(image, 0.2, 0.2, row_axis=0, col_axis=1, channel_axis=2)
-        # randomly zoom in up to 20%
-        image = preprocess.random_zoom(image, (0.8, 0.8), row_axis=0, col_axis=1, channel_axis=2)
+        # randomly shift up to n %
+        shift_percent = 0.2
+        image = preprocess.random_shift(image, shift_percent, shift_percent, row_axis=0, col_axis=1, channel_axis=2)
+        # randomly zoom in up to n %
+        zoom_percent = 0.8
+        image = preprocess.random_zoom(image, (zoom_percent, zoom_percent), row_axis=0, col_axis=1, channel_axis=2)
         #adjust brightness
-        image = preprocess.random_brightness(image, (0.8, 1.2))
+        #image = preprocess.random_brightness(image, (0.8, 1.2))
+        image_tmp = imgenhancer_Brightness = ImageEnhance.Brightness(preprocess.array_to_img(image))
+        u = np.random.uniform(0.8, 1.2)
+        image_tmp = imgenhancer_Brightness.enhance(u)
+        image = preprocess.img_to_array(image_tmp)
         # randomly flip horizontally
         if np.random.random() > 0.5:
           image = preprocess.flip_axis(image, 1)
