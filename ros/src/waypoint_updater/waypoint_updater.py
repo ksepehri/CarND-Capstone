@@ -24,6 +24,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 40 # Number of waypoints we will publish. You can change this number
+MAX_VELOCITY = 20
 
 
 class WaypointUpdater(object):
@@ -46,31 +47,41 @@ class WaypointUpdater(object):
         # holds list of waypoints that will be loaded over /base_waypoints topic
         self.base_waypoints = None
 
-        self.traffic_light_state = False
+        self.traffic_waypoints = None
 
-        rospy.spin()
+        self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(50)
+        while not rospy.is_shutdown():
+            if self.current_pose and self.base_waypoints:
+                self.publish_waypoints()
+
+            rate.sleep()
 
     def pose_cb(self, msg):
         self.current_pose = msg.pose
-        print("current pose set!")
-        if not self.traffic_light_state:
-            self.publish_waypoints()
+        # print("current pose set!")
+        #rospy.logwarn('in pose_cb')
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints.waypoints
-        #rospy.logwarn([w.twist.twist.linear.x for w in self.base_waypoints])
+        # rospy.logwarn([w.twist.twist.linear.x for w in self.base_waypoints])
+        # handle extreme data in church lot waypoints
+        for waypoint in self.base_waypoints:
+            if waypoint.twist.twist.linear.x > MAX_VELOCITY:
+                waypoint.twist.twist.linear.x = MAX_VELOCITY
         # print("waypoints set!")
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
         waypoint = msg.data
 
         if waypoint==-1:
             rospy.logwarn('no light')
-            self.traffic_light_state = False
+            self.traffic_waypoints = None
             return
 
-        LIGHT_MAX_DIST = 42
+        LIGHT_MAX_DIST = 50
 
         # ignore red light if it's too far ahead
         nearest_waypoint = self.nearest_waypoint()
@@ -78,12 +89,10 @@ class WaypointUpdater(object):
             rospy.logwarn('light, too far: %d', waypoint-nearest_waypoint)
             return
 
-        self.traffic_light_state = True
-
         new_waypoints = []
-        waypoint -= 7      # adjustment to stop before the line
         # rospy.logwarn('traffic_cb dest_waypoint: %d, current_waypoint: %d', waypoint, self.nearest_waypoint()) #
         waypoints_to_stop = waypoint - nearest_waypoint
+        waypoints_to_stop -= 3 # stop a little before the line for safety
         rospy.logwarn('nearest_waypoint: %d; waypoints_to_stop; %d; waypoint: %d', nearest_waypoint, waypoints_to_stop, waypoint)
 
         for i in range(waypoints_to_stop):
@@ -104,7 +113,8 @@ class WaypointUpdater(object):
             new_waypoints.append(waypoint_obj)
 
         rospy.logwarn('light')
-        self.publish_waypoints(waypoints=new_waypoints)
+        self.traffic_waypoints = new_waypoints
+        #self.publish_waypoints(waypoints=new_waypoints)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -156,16 +166,19 @@ class WaypointUpdater(object):
 
         return nearest_waypoint_index
 
-    def publish_waypoints(self, waypoints=None):
+    def publish_waypoints(self):
+        #rospy.logwarn("in publish_waypoints")
         if self.base_waypoints is None:
             return
 
-        if waypoints is None:
+        if self.traffic_waypoints is None:
             nearest_waypoint_index = self.nearest_waypoint()
             closing_waypoint_index = nearest_waypoint_index + LOOKAHEAD_WPS
 
             waypoints = self.base_waypoints[nearest_waypoint_index:closing_waypoint_index]
             #print("publishing {} waypoints".format(len(waypoints_to_publish)))
+        else:
+            waypoints = self.traffic_waypoints
 
         #rospy.logwarn([w.twist.twist.linear.x for w in waypoints])
         self.final_waypoints_pub.publish(Lane(waypoints=waypoints))
