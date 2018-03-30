@@ -46,50 +46,65 @@ class WaypointUpdater(object):
         # holds list of waypoints that will be loaded over /base_waypoints topic
         self.base_waypoints = None
 
+        self.traffic_light_state = False
+
         rospy.spin()
 
     def pose_cb(self, msg):
         self.current_pose = msg.pose
         print("current pose set!")
-        self.publish_waypoints()
+        if not self.traffic_light_state:
+            self.publish_waypoints()
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints.waypoints
         #rospy.logwarn([w.twist.twist.linear.x for w in self.base_waypoints])
-        print("waypoints set!")
+        # print("waypoints set!")
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         waypoint = msg.data
-        #rospy.logwarn('waypoint msg data: %d',waypoint)
-        if waypoint != -1:
-            new_waypoints = []
-            waypoint -= 20 # for some reason, the stop line data appears to be 20 waypoints off?
-            # rospy.logwarn('traffic_cb dest_waypoint: %d, current_waypoint: %d', waypoint, self.nearest_waypoint()) #
-            nearest_waypoint = self.nearest_waypoint()
-            waypoints_to_stop = waypoint - nearest_waypoint
-            #rospy.logwarn('nearest_waypoint: %d; waypoints_to_stop; %d; waypoint: %d', nearest_waypoint, waypoints_to_stop, waypoint)
-            for i in range(waypoints_to_stop):
-                # rospy.logwarn('updating velocity for waypoint %d', i)
-                p = 1. - float(i + 1) / float(waypoints_to_stop)
-                #rospy.logwarn('p: %.3f', p)
-                cur_v = self.get_waypoint_velocity(self.base_waypoints[i])
-                new_v = cur_v * p
-                # rospy.logwarn('   cur_v: %.3f, new_v: %.3f', cur_v, new_v)
-                waypoint_obj = copy.copy(self.base_waypoints[nearest_waypoint + i])
-                waypoint_obj.twist.twist.linear.x = new_v
-                
-                new_waypoints.append(waypoint_obj)
-            final_waypoint = copy.copy(self.base_waypoints[waypoint])
-            final_waypoint.twist.twist.linear.x = 0
-            new_waypoints.append(final_waypoint)
 
-            rospy.logwarn('light')
-            self.publish_waypoints(waypoints=new_waypoints)
-            # rospy.logwarn('sent stop')
-        else:
+        if waypoint==-1:
             rospy.logwarn('no light')
-            self.publish_waypoints()
+            self.traffic_light_state = False
+            return
+
+        LIGHT_MAX_DIST = 42
+
+        # ignore red light if it's too far ahead
+        nearest_waypoint = self.nearest_waypoint()
+        if waypoint-nearest_waypoint > LIGHT_MAX_DIST:
+            rospy.logwarn('light, too far: %d', waypoint-nearest_waypoint)
+            return
+
+        self.traffic_light_state = True
+
+        new_waypoints = []
+        waypoint -= 7      # adjustment to stop before the line
+        # rospy.logwarn('traffic_cb dest_waypoint: %d, current_waypoint: %d', waypoint, self.nearest_waypoint()) #
+        waypoints_to_stop = waypoint - nearest_waypoint
+        rospy.logwarn('nearest_waypoint: %d; waypoints_to_stop; %d; waypoint: %d', nearest_waypoint, waypoints_to_stop, waypoint)
+
+        for i in range(waypoints_to_stop):
+            # rospy.logwarn('updating velocity for waypoint %d', i)
+            p = 1. - float(i + 1) / float(waypoints_to_stop)
+            #rospy.logwarn('p: %.3f', p)
+            cur_v = self.get_waypoint_velocity(self.base_waypoints[i])
+            new_v = cur_v * p
+            # rospy.logwarn('   cur_v: %.3f, new_v: %.3f', cur_v, new_v)
+            waypoint_obj = copy.deepcopy(self.base_waypoints[nearest_waypoint + i])
+            waypoint_obj.twist.twist.linear.x = new_v
+            new_waypoints.append(waypoint_obj)
+
+        # add extra waypoints with 0 speed after the stopping light
+        for i in range(LOOKAHEAD_WPS):
+            waypoint_obj = copy.deepcopy(self.base_waypoints[waypoint+i])
+            waypoint_obj.twist.twist.linear.x = 0
+            new_waypoints.append(waypoint_obj)
+
+        rospy.logwarn('light')
+        self.publish_waypoints(waypoints=new_waypoints)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -142,6 +157,9 @@ class WaypointUpdater(object):
         return nearest_waypoint_index
 
     def publish_waypoints(self, waypoints=None):
+        if self.base_waypoints is None:
+            return
+
         if waypoints is None:
             nearest_waypoint_index = self.nearest_waypoint()
             closing_waypoint_index = nearest_waypoint_index + LOOKAHEAD_WPS
