@@ -60,7 +60,7 @@ class TLDetector(object):
 
         self.has_image = False
 
-        self. rate = rospy.Rate(2)  # Hz
+        self.rate = rospy.Rate(2)  # Hz
 
         self.pub_ready.publish(True)
 
@@ -68,6 +68,7 @@ class TLDetector(object):
 
     def loop(self):
         while not rospy.is_shutdown():
+            self.pub_ready.publish(True) # in case the subscriber was slow to start up
             light, should_evaluate, debug_state = self.get_closest_light()
             if should_evaluate and self.sub_image is None:
                 self.sub_image = rospy.Subscriber('/image_color', Image, self.image_cb)

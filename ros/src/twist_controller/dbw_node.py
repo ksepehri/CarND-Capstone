@@ -140,9 +140,10 @@ class DBWNode(object):
 
     def tl_detector_ready_callback(self, msg):
         self.tl_detector_ready = msg.data
-        # rospy.loginfo('tl_detector_ready: %s', self.tl_detector_ready)
+        #rospy.loginfo('tl_detector_ready: %s', self.tl_detector_ready)
 
     def publish(self, throttle, brake, steer):
+        #rospy.logwarn("In publish: %d; %d; %d;", throttle, brake, steer)
         tcmd = ThrottleCmd()
         tcmd.enable = True
         tcmd.pedal_cmd_type = ThrottleCmd.CMD_PERCENT

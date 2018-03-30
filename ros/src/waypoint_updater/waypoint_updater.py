@@ -6,6 +6,7 @@ from styx_msgs.msg import Lane, Waypoint
 from std_msgs.msg import Int32
 import time
 import math
+import copy
 
 '''
 This node will publish waypoints from the car's current position to some `x` distance ahead.
@@ -23,6 +24,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 40 # Number of waypoints we will publish. You can change this number
+MAX_VELOCITY = 20
 
 
 class WaypointUpdater(object):
@@ -45,44 +47,74 @@ class WaypointUpdater(object):
         # holds list of waypoints that will be loaded over /base_waypoints topic
         self.base_waypoints = None
 
-        rospy.spin()
+        self.traffic_waypoints = None
+
+        self.loop()
+
+    def loop(self):
+        rate = rospy.Rate(50)
+        while not rospy.is_shutdown():
+            if self.current_pose and self.base_waypoints:
+                self.publish_waypoints()
+
+            rate.sleep()
 
     def pose_cb(self, msg):
         self.current_pose = msg.pose
-        print("current pose set!")
-        self.publish_waypoints()
+        # print("current pose set!")
+        #rospy.logwarn('in pose_cb')
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints.waypoints
-        print("waypoints set!")
+        # rospy.logwarn([w.twist.twist.linear.x for w in self.base_waypoints])
+        # handle extreme data in church lot waypoints
+        for waypoint in self.base_waypoints:
+            if waypoint.twist.twist.linear.x > MAX_VELOCITY:
+                waypoint.twist.twist.linear.x = MAX_VELOCITY
+        # print("waypoints set!")
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
         waypoint = msg.data
-        #rospy.logwarn('waypoint msg data: %d',waypoint)
-        if waypoint != -1:
-            waypoint -= 20 # for some reason, the stop line data appears to be 20 waypoints off?
-            self.set_waypoint_velocity(self.base_waypoints, waypoint, 0)
-            #self.base_waypoints[waypoint].twist.twist.linear.x = 0 # come to stop by here
-            # rospy.logwarn('traffic_cb dest_waypoint: %d, current_waypoint: %d', waypoint, self.nearest_waypoint()) #
-            nearest_waypoint = self.nearest_waypoint()
-            waypoints_to_stop = waypoint - nearest_waypoint
-            #rospy.logwarn('nearest_waypoint: %d; waypoints_to_stop; %d; waypoint: %d', nearest_waypoint, waypoints_to_stop, waypoint)
-            for i in range(waypoints_to_stop):
-                # rospy.logwarn('updating velocity for waypoint %d', i)
-                p = 1. - float(i + 1) / float(waypoints_to_stop)
-                #rospy.logwarn('p: %.3f', p)
-                cur_v = self.get_waypoint_velocity(self.base_waypoints[i])
-                new_v = cur_v * p
-                # rospy.logwarn('   cur_v: %.3f, new_v: %.3f', cur_v, new_v)
-                self.set_waypoint_velocity(self.base_waypoints, nearest_waypoint + i, new_v)
 
-            # rospy.logwarn('sent stop')
-        else:
-            for i in range(self.nearest_waypoint(), self.nearest_waypoint()+100):
-                self.set_waypoint_velocity(self.base_waypoints, i, 11.111111)
-        self.publish_waypoints()
-            #pass
+        if waypoint==-1:
+            rospy.logwarn('no light')
+            self.traffic_waypoints = None
+            return
+
+        LIGHT_MAX_DIST = 50
+
+        # ignore red light if it's too far ahead
+        nearest_waypoint = self.nearest_waypoint()
+        if waypoint-nearest_waypoint > LIGHT_MAX_DIST:
+            rospy.logwarn('light, too far: %d', waypoint-nearest_waypoint)
+            return
+
+        new_waypoints = []
+        # rospy.logwarn('traffic_cb dest_waypoint: %d, current_waypoint: %d', waypoint, self.nearest_waypoint()) #
+        waypoints_to_stop = waypoint - nearest_waypoint
+        waypoints_to_stop -= 3 # stop a little before the line for safety
+        rospy.logwarn('nearest_waypoint: %d; waypoints_to_stop; %d; waypoint: %d', nearest_waypoint, waypoints_to_stop, waypoint)
+
+        for i in range(waypoints_to_stop):
+            # rospy.logwarn('updating velocity for waypoint %d', i)
+            p = 1. - float(i + 1) / float(waypoints_to_stop)
+            #rospy.logwarn('p: %.3f', p)
+            cur_v = self.get_waypoint_velocity(self.base_waypoints[i])
+            new_v = cur_v * p
+            # rospy.logwarn('   cur_v: %.3f, new_v: %.3f', cur_v, new_v)
+            waypoint_obj = copy.deepcopy(self.base_waypoints[nearest_waypoint + i])
+            waypoint_obj.twist.twist.linear.x = new_v
+            new_waypoints.append(waypoint_obj)
+
+        # add extra waypoints with 0 speed after the stopping light
+        for i in range(LOOKAHEAD_WPS):
+            waypoint_obj = copy.deepcopy(self.base_waypoints[waypoint+i])
+            waypoint_obj.twist.twist.linear.x = 0
+            new_waypoints.append(waypoint_obj)
+
+        rospy.logwarn('light')
+        self.traffic_waypoints = new_waypoints
+        #self.publish_waypoints(waypoints=new_waypoints)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -90,9 +122,6 @@ class WaypointUpdater(object):
 
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
-
-    def set_waypoint_velocity(self, waypoints, waypoint, velocity):
-        waypoints[waypoint].twist.twist.linear.x = velocity
 
     def position_distance(self, a, b):
         return math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
@@ -138,13 +167,21 @@ class WaypointUpdater(object):
         return nearest_waypoint_index
 
     def publish_waypoints(self):
-        nearest_waypoint_index = self.nearest_waypoint()
-        closing_waypoint_index = nearest_waypoint_index + LOOKAHEAD_WPS
+        #rospy.logwarn("in publish_waypoints")
+        if self.base_waypoints is None:
+            return
 
-        waypoints_to_publish = self.base_waypoints[nearest_waypoint_index:closing_waypoint_index]
-        #print("publishing {} waypoints".format(len(waypoints_to_publish)))
+        if self.traffic_waypoints is None:
+            nearest_waypoint_index = self.nearest_waypoint()
+            closing_waypoint_index = nearest_waypoint_index + LOOKAHEAD_WPS
 
-        self.final_waypoints_pub.publish(Lane(waypoints=waypoints_to_publish))
+            waypoints = self.base_waypoints[nearest_waypoint_index:closing_waypoint_index]
+            #print("publishing {} waypoints".format(len(waypoints_to_publish)))
+        else:
+            waypoints = self.traffic_waypoints
+
+        #rospy.logwarn([w.twist.twist.linear.x for w in waypoints])
+        self.final_waypoints_pub.publish(Lane(waypoints=waypoints))
 
 if __name__ == '__main__':
     try:
