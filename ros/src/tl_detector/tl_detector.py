@@ -204,8 +204,11 @@ class TLDetector(object):
 
             light_prediction_waypoints = 120
             waypoints_to_next_light_waypoint = light_wp - car_position
-            if light_wp > (len(self.waypoints) - light_prediction_waypoints) <= light_prediction_waypoints:
-                waypoints_to_next_light_waypoint += len(self.waypoints)
+
+            # these two lines used for a looping track
+            #if light_wp > (len(self.waypoints) - light_prediction_waypoints) <= light_prediction_waypoints:
+            #    waypoints_to_next_light_waypoint += len(self.waypoints)
+
             # rospy.loginfo('waypoint distance is %s', waypoints_to_next_light_waypoint)
             if waypoints_to_next_light_waypoint >= 25 and waypoints_to_next_light_waypoint <= light_prediction_waypoints:
                 should_evaluate = True
