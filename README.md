@@ -12,12 +12,12 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 
 # Team
 
-Name|Email
-:-----:|:-----:
-Kevin Sepehri|kevinsepehri@gmail.com
-Lajos Kamocsay|panka.nospam@gmail.com
-Mike Challis|gardenermike@gmail.com
-Rafael Barreto|rafaelbarretorb@gmail.com
+Name
+:-----:
+Kevin Sepehri
+Lajos Kamocsay
+Mike Challis
+Rafael Barreto
 
 # ROS Nodes
 ## Waypoint Updater
